@@ -151,6 +151,6 @@ ros2 run tf2_ros static_transform_publisher \
 ## Limitations and Future Work
 
 1. **Monocular Scale Initialization**: As demonstrated in the results, pure constant-velocity initialization prevents the recovery of true metric scale. Future work will integrate an external GPS or wheel-odometry velocity prior to lock the scale before encountering high-dynamic maneuvers.
-2. **Global Loop Closure**: While the `loop_closure` plugin architecture exists, DBoW2-based place recognition is currently maintained externally. Integrating these constraints into the `visual_graph_slam` backend will eliminate the 50m APE accumulated during long 1.7km straightaways.
+2. **Global Loop Closure**: While the `loop_closure` plugin architecture exists, DBoW2-based place recognition is currently maintained externally. Integrating these constraints into the `visual_graph_slam` backend to use the loopclourse functionality.
 
 

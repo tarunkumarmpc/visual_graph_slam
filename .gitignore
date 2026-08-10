@@ -1,0 +1,18 @@
+# ROS 2 build directories
+build/
+install/
+log/
+*~
+
+# Python
+__pycache__/
+*.pyc
+
+# IDEs
+.vscode/
+.idea/
+
+# Large binaries and vocabs
+voc/
+*.yml
+*.txt

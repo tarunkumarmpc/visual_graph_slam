@@ -1,0 +1,35 @@
+<library path="visual_graph_slam_plugins">
+
+  <!-- Frontend Plugins -->
+  <class type="slam::plugins::FrontendOrb" base_class_type="slam::core::Frontend">
+    <description>ORB + LK optical flow frontend</description>
+  </class>
+  <class type="slam::plugins::FrontendSift" base_class_type="slam::core::Frontend">
+    <description>SIFT frontend</description>
+  </class>
+  <class type="slam::plugins::FrontendCustom" base_class_type="slam::core::Frontend">
+    <description>CLAHE enhanced ORB frontend</description>
+  </class>
+
+  <!-- Loop Closure Plugins -->
+  <class type="slam::plugins::LoopClosureDBoW2" base_class_type="slam::core::LoopClosure">
+    <description>DBoW2 based loop closure</description>
+  </class>
+  <class type="slam::plugins::LoopClosureOrbBow" base_class_type="slam::core::LoopClosure">
+    <description>OrbBow based loop closure</description>
+  </class>
+
+  <!-- Optimizer Plugins -->
+  <class type="slam::core::G2oOptimizerBackend" base_class_type="slam::core::OptimizerBackend">
+    <description>g2o backend pose graph optimizer</description>
+  </class>
+  <class type="slam::core::GtsamOptimizerBackend" base_class_type="slam::core::OptimizerBackend">
+    <description>GTSAM backend pose graph optimizer with ISAM2</description>
+  </class>
+
+  <!-- System Plugins -->
+  <class type="slam::plugins::SystemCoordinator" base_class_type="slam::core::System">
+    <description>Component-based coordinator for dynamic sensor module loading</description>
+  </class>
+
+</library>

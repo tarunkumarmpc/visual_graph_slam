@@ -1,0 +1,28 @@
+# Main SLAM Configuration File
+# ─────────────────────────────────────────────────────────────────────────────
+# Set the mode here to load the corresponding parameters from config/modes/.
+# Available modes: mono | mono_imu | mono_imu_wheel
+#
+# The evaluator (slam_evaluator) overrides this with the dataset config mode.
+# For manual runs, change 'mode' below and re-launch.
+# ─────────────────────────────────────────────────────────────────────────────
+
+graph_slam:
+  ros__parameters:
+    system_plugin: "slam::plugins::SystemCoordinator"
+    frontend_plugin: "slam::plugins::FrontendOrb"
+    loop_closure_plugin: "slam::plugins::LoopClosureDBoW2"
+    optimizer: "gtsam"
+    use_sim_time: true
+
+    # KITTI Dataset Topics & Frames
+    camera_frame_id: cam0_link
+    imu.frame_id: oxts_link
+
+sensor_data_manager:
+  ros__parameters:
+    mode: mono
+    topics.image: /kitti/camera/gray/left/image_raw
+    topics.camera_info: /kitti/camera/gray/left/camera_info
+    topics.imu: /kitti/oxts/imu
+    topics.odom: /kitti/oxts/gps/vel

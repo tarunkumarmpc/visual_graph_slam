@@ -1,0 +1,62 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# MONO Mode — Pure monocular visual odometry (no IMU)
+# ─────────────────────────────────────────────────────────────────────────────
+# Loaded AFTER common_params.yaml, BEFORE slam_params.yaml.
+# Only override what differs from the common baseline.
+#
+# Key design decisions for mono:
+#   - g2o optimizer (lighter weight, no GTSAM preintegration overhead)
+#   - VINS disabled (mode=mono prevents instantiation in graph_slam.cpp)
+#   - Local BA thresholds LOWER than common — mono bootstrap has fewer landmarks
+#   - VO quality gates RELAXED — mono has no IMU to fall back on; better to
+#     accept a slightly noisier estimate than to reject and stall tracking
+#   - Planar motion constraint helps for ground vehicles
+# ─────────────────────────────────────────────────────────────────────────────
+
+graph_slam:
+  ros__parameters:
+    mode: mono
+    system_plugin: "slam::plugins::SystemCoordinator"
+    frontend_plugin: "slam::plugins::FrontendOrb"
+    loop_closure_plugin: "slam::plugins::LoopClosureDBoW2"
+    use_motion_priors: false
+    motion_prior_source: none
+    optimizer: g2o
+
+    # ── Local BA (mono-tuned) ──────────────────────────────────────────────
+    # Evaluation showed anchored_lm=0 every frame with the common defaults.
+    # Mono bootstrap produces fewer cross-window landmarks, so thresholds
+    # must be lower to allow BA to run at all.
+    local_ba_min_anchored_landmarks: 25
+    local_ba_min_reprojection_edges: 50
+    local_ba_min_obs_per_landmark_window: 2
+    local_ba_init_min_keyframes: 8
+    local_ba_min_window_kfs: 4
+    local_ba_init_min_baseline_m: 0.10
+    local_ba_init_min_mean_flow_px: 0.8
+    local_ba_max_tail_step_m: 5.0
+
+    # ── VO quality gates (mono-relaxed) ───────────────────────────────────
+    # In mono mode there is NO IMU fallback. Accepting a slightly weaker VO
+    # estimate is always better than stalling tracking. The evaluation showed
+    # 71 rejects where Feature had 150-220 inliers (gate required 80).
+    vision.min_vo_confidence: 0.25
+    vision.min_vo_inliers: 15
+    vision.min_vo_inlier_ratio: 0.18
+    vision.min_feature_vo_confidence: 0.40
+    vision.min_feature_vo_inliers: 35
+    vision.min_feature_vo_inlier_ratio: 0.30
+    # ── Optimizer jump guard (relaxed for unit-scale mono) ───────────────────
+    optimizer.max_tail_jump_m: 50.0
+
+    # ── Landmark triangulation (mono-relaxed) ─────────────────────────────
+    landmark_min_triangulation_parallax_px: 4
+    landmark_min_depth: 0.3
+
+sensor_data_manager:
+  ros__parameters:
+    mode: mono
+    topics.image: /kitti/camera/gray/left/image_raw
+    topics.camera_info: /kitti/camera/gray/left/camera_info
+    topics.odom: /odom # not used in mono but must be set
+    topics.imu: /imu/data # not subscribed in mono mode

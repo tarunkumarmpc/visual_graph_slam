@@ -1,0 +1,180 @@
+graph_slam:
+  ros__parameters:
+    # Pipeline mode (monocular-first naming)
+    # mono | mono_imu | mono_wheel | mono_external | mono_imu_wheel
+    # mono: pure monocular SLAM without scale
+    # mono_imu: visual-inertial fusion (resolves scale)
+    mode: mono_imu
+    # For pure monocular ground vehicles, keep z/roll/pitch fixed and only allow yaw + xy motion.
+    mono.planar_motion_constraint: true
+
+    # Optional motion-prior fusion (used only in odom-enabled modes)
+    use_motion_priors: true
+    # wheel_odometry | external_odometry | imu_preintegration
+    motion_prior_source: imu_preintegration
+    vision.keyframe_time_threshold_sec: 0.35
+    # VO quality gates (applied in graph_slam before integrating pose).
+    vision.min_vo_confidence: 0.38
+    vision.min_vo_inliers: 40
+    vision.min_vo_inlier_ratio: 0.32
+    vision.min_feature_vo_confidence: 0.60
+    vision.min_feature_vo_inliers: 80
+    vision.min_feature_vo_inlier_ratio: 0.45
+    vision.reject_feature_fallback: false
+    vision.keyframe_rotation_threshold_deg: 8.0
+    vision.max_consecutive_vo_rejects: 12
+    vision.weak_tracking_reject_threshold: 4
+    vision.lost_tracking_reject_threshold: 12
+    vision.weak_to_ok_min_good_frames: 4
+    # Monocular scale robustness: use larger local window and tighter scale/direction gates.
+    sim3.local_scale_window: 6
+    sim3.min_scale: 0.60
+    sim3.max_scale: 2.20
+    sim3.graph_scale_blend: 0.25
+    sim3.max_direction_error_deg: 45.0
+    # Backend safety: only accept stronger loop evidence and smaller corrections.
+    loop.min_inliers: 30
+    loop.min_inlier_ratio: 0.25
+    loop.max_rotation_error_deg: 35.0
+    loop.cooldown_keyframes: 10
+    loop.max_correction_m: 10.0
+    optimizer.max_tail_jump_m: 0.8
+
+    # Graph/keyframe settings
+    # Monocular vision_only returns unit-length translation direction; 2.0 reduces over-keyframing.
+    keyframe_distance_threshold: 1.2
+    global_optimization_stride: 20
+    local_mapping_window_size: 15
+    local_mapping_stride: 5
+    enable_local_mapping: true
+    # Run local BA per keyframe (true) or only at local_mapping_stride intervals (false)
+    local_mapping_every_keyframe: false
+    # Extrinsic-aware reprojection in local BA. Uses graph base poses together
+    # with fixed base->camera TF during projection.
+    local_ba_use_reprojection: true
+    local_ba_iterations: 15
+    # ORB-SLAM-style incremental local BA: only the newest N keyframes are free
+    # to move; all older window KFs are fixed as stable 3D landmark anchors.
+    # Prevents monocular scale drift in large windows. Default: 3.
+    local_ba_free_kfs: 3
+    # VO-only warmup before enabling local BA.
+    local_ba_init_min_keyframes: 12
+    local_ba_init_min_baseline_m: 0.18
+    local_ba_init_min_mean_flow_px: 1.2
+    # Skip local BA until geometry is sufficiently constrained.
+    local_ba_min_window_kfs: 6
+    local_ba_min_anchored_landmarks: 120
+    local_ba_min_reprojection_edges: 260
+    local_ba_min_obs_per_landmark_window: 3
+    local_ba_min_landmark_parallax_px: 8.0
+    local_ba_max_initial_reproj_err_px: 8.0
+    local_ba_max_tail_step_m: 0.60
+    # Rebalance BA to reduce free-tail translation jumps on weak monocular geometry.
+    local_ba_pose_edge_translation_scale: 1.8
+    local_ba_reprojection_info_scale: 0.45
+    # After a rollback, skip local BA for this many upcoming keyframes.
+    local_ba_rollback_cooldown_kfs: 20
+    # Circuit-breaker: disable reprojection BA for current run after repeated rollbacks.
+    local_ba_disable_reprojection_after_rollbacks: 2
+    # Pose-only BA: fix ALL landmark positions, only optimize KF poses.
+    # This eliminates the monocular 1-DOF translation gauge freedom:
+    #   With free landmarks + forward motion + small parallax the optimizer shifts
+    #   the entire free-KF cluster by N keyframe steps (exactly 2.00m seen in logs)
+    #   because reprojection cost (weight~3000) overwhelms SE3 edges (weight~30).
+    # With fixed landmarks the problem is fully constrained — no gauge freedom.
+    # Set false only if you have good stereo/depth landmarks (non-monocular).
+    local_ba_pose_only: true
+    # Optional heavy pass after loop-triggered global optimization
+    full_ba_on_loop_closure: false
+    full_ba_iterations: 25
+
+    # Optimizer: g2o | gtsam (Recommended for mono_imu)
+    optimizer: gtsam
+
+    # TF frame IDs. Use base_link as body frame and cam0_link as camera frame.
+    # graph_slam will convert camera-frame VO increments into base frame via TF.
+    map_frame_id: map
+    base_frame_id: base_link
+    camera_frame_id: cam0_link
+    publish_map_to_base_tf: true
+
+    # Camera model (GraphSlam side)
+    # KITTI rectified camera intrinsics — sequences 00-02 (2011_10_03 drive)
+    # Seq 03: fx=721.538 cx=609.559 cy=172.854
+    # Seq 04-12: fx=707.091 cx=601.888 cy=183.110
+    # Always verify against your sequence's calib.txt P0 matrix.
+    camera.fx: 718.856
+    camera.fy: 718.856
+    camera.cx: 607.193
+    camera.cy: 185.216
+    camera.model: pinhole
+    # KITTI images are pre-rectified → distortion coefficients are all zero
+    camera.distortion.k1: 0.0
+    camera.distortion.k2: 0.0
+    camera.distortion.k3: 0.0
+    camera.distortion.k4: 0.0
+
+    # Landmark mapping
+    landmark_match_ratio_test: 0.75
+    landmark_min_observations: 2
+    landmark_prune_stride: 30
+    landmark_min_depth: 0.5
+    landmark_max_depth: 35.0
+    landmark_min_triangulation_parallax_px: 6
+
+sensor_data_manager:
+  ros__parameters:
+    # Keep this aligned with graph_slam.mode
+    mode: mono_imu
+
+    # Input topics for KITTI Data
+    topics.image: /kitti/camera_color_left/image_raw
+    topics.image_qos.reliability: reliable
+    topics.image_qos.depth: 10
+    topics.camera_info: "/kitti/camera_color_left/camera_info"
+    topics.odom: /odom
+    topics.imu: /kitti/oxts/imu
+    sync.queue_size: 20
+
+vision_node:
+  ros__parameters:
+    # VPR and loop closure
+    loop.vpr_backend: dbow2
+    loop.temporal_gap: 12
+    loop.score_threshold: 0.005
+    loop.vpr_query_max_results: 500
+    # NOTE: loop/optimizer gates are consumed by graph_slam node params.
+
+    # Frontend
+    frontend.detector: orb
+    frontend.ratio_test_threshold: 0.75
+
+    # Camera model (VisionNode side)
+    # KITTI rectified camera intrinsics — sequences 00-02 (2011_10_03 drive)
+    # Seq 03: fx=721.538 cx=609.559 cy=172.854
+    # Seq 04-12: fx=707.091 cx=601.888 cy=183.110
+    # Always verify against your sequence's calib.txt P0 matrix.
+    camera.fx: 718.856
+    camera.fy: 718.856
+    camera.cx: 607.193
+    camera.cy: 185.216
+    camera.model: pinhole
+    # KITTI images are pre-rectified → distortion coefficients are all zero
+    camera.distortion.k1: 0.0
+    camera.distortion.k2: 0.0
+    camera.distortion.k3: 0.0
+    camera.distortion.k4: 0.0
+
+    # Hybrid VO tuning
+    vo.min_tracked_pts: 150
+    # reinit_threshold: redetect new corners when tracked points fall below this.
+    # KITTI car moves fast — features leave the frame quickly. With 200 (prev value)
+    # the tracker bled from ~800 to 200 (~33 frames) before refilling.
+    # 400 fires reinit twice as often, keeping tracked count in the 400-800 range
+    # and confidence consistently above 0.7.
+    vo.reinit_threshold: 450
+    vo.max_corners: 800  # KITTI image is 1241 px wide, more corners improve tracking
+    # Minimum mean LK optical-flow (pixels) before motion is estimated.
+    # 0.8 reduces false stationary drops while still suppressing tiny-noise motion.
+    vo.min_flow_px: 0.9
+

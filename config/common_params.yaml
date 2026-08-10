@@ -1,0 +1,168 @@
+graph_slam:
+  ros__parameters:
+    # Monocular ground vehicle constraints
+    mono.planar_motion_constraint: true
+
+    # ─────────────────────────────────────────────────────────────────────────
+    # NOTE: Parameters below are COMMON DEFAULTS.
+    # Mode-specific files (config/modes/mono.yaml, mono_imu.yaml, etc.) load
+    # AFTER this file and override anything that differs per mode.
+    # slam_params.yaml loads last and overrides for the specific run/dataset.
+    # ─────────────────────────────────────────────────────────────────────────
+
+    # IMU Parameters & Extrinsics
+    imu.frame_id: imu_link
+    # 🔴 CRITICAL WARNING FOR REAL-WORLD TESTS 🔴
+    # The default values below are typical for a standard MEMS IMU (e.g. EuRoC dataset's ADIS16448).
+    # If using a different IMU (Pixhawk, Realsense, etc), you MUST run Allan Variance (kalibr_allan)
+    # and update these. Wrong noise values = wrong GTSAM information matrix = VINS fails to converge.
+    # Units: continuous-time noise (NOT discrete)
+    imu.accel_noise: 0.02         # [m/s²/√Hz] (was 0.1)
+    imu.gyro_noise: 0.0017        # [rad/s/√Hz] (was 0.01)
+    imu.accel_bias_walk: 0.0002   # [m/s³/√Hz]
+    imu.gyro_bias_walk: 0.00002   # [rad/s²/√Hz]
+    
+    # Camera to IMU Extrinsics (T_cam_imu)
+    # If using TF lookup (recommended), these will be ignored.
+    imu.extrinsic.q_x: 0.0
+    imu.extrinsic.q_y: 0.0
+    imu.extrinsic.q_z: 0.0
+    imu.extrinsic.q_w: 1.0
+    imu.extrinsic.t_x: 0.0
+    imu.extrinsic.t_y: 0.0
+    imu.extrinsic.t_z: 0.0
+
+    # Vision quality gates
+    vision.keyframe_time_threshold_sec: 0.35
+    vision.min_vo_confidence: 0.38
+    vision.min_vo_inliers: 25
+    vision.min_vo_inlier_ratio: 0.22
+    vision.min_feature_vo_confidence: 0.60
+    vision.min_feature_vo_inliers: 80
+    vision.min_feature_vo_inlier_ratio: 0.45
+    vision.reject_feature_fallback: false
+    vision.keyframe_rotation_threshold_deg: 8.0
+    vision.max_consecutive_vo_rejects: 12
+    vision.weak_tracking_reject_threshold: 4
+    vision.lost_tracking_reject_threshold: 12
+    vision.weak_to_ok_min_good_frames: 4
+
+    # PnP Recovery parameters (FIX9: was hardcoded, now tunable)
+    pnp.keyframe_window: 5
+    pnp.min_inliers: 25
+    pnp.min_inlier_ratio: 0.12
+    pnp.max_rotation_deg: 35.0
+
+    # Sim3 / Scaling defaults
+    sim3.local_scale_window: 6
+    sim3.min_scale: 0.60
+    sim3.max_scale: 2.20
+    sim3.graph_scale_blend: 0.25
+    sim3.max_direction_error_deg: 45.0
+
+    # Loop closure gates
+    loop.min_inliers: 30
+    loop.min_inlier_ratio: 0.25
+    loop.max_rotation_error_deg: 35.0
+    loop.cooldown_keyframes: 10
+    loop.max_correction_m: 10.0
+    max_graph_jump_m: 10.0
+    max_loop_closure_jump_m: 10.0
+    optimizer.max_tail_jump_m: 10.0
+
+    # Graph/Mapping settings
+    keyframe_distance_threshold: 1.0
+    global_optimization_stride: 20
+    local_mapping_window_size: 15
+    local_mapping_stride: 5
+    enable_local_mapping: true
+    local_mapping_every_keyframe: false
+    local_ba_use_reprojection: true
+    local_ba_iterations: 15
+    local_ba_free_kfs: 3
+
+    # Local BA geometry gates — COMMON DEFAULTS
+    # These are intentionally moderate. Mode files (mono.yaml / mono_imu.yaml)
+    # override these to the values tuned for each mode. Do NOT raise these
+    # defaults without also updating the mode files.
+    local_ba_init_min_keyframes: 10
+    local_ba_init_min_baseline_m: 0.12
+    local_ba_init_min_mean_flow_px: 1.0
+    local_ba_min_window_kfs: 4
+    local_ba_min_anchored_landmarks: 30       # mode files raise/lower this
+    local_ba_min_reprojection_edges: 60       # mode files raise/lower this
+    local_ba_min_obs_per_landmark_window: 2
+    local_ba_min_landmark_parallax_px: 5.0
+    local_ba_max_initial_reproj_err_px: 8.0
+    local_ba_max_tail_step_m: 10.0
+    local_ba_pose_edge_translation_scale: 1.8
+    local_ba_reprojection_info_scale: 0.45
+    local_ba_rollback_cooldown_kfs: 20
+    local_ba_disable_reprojection_after_rollbacks: 2
+    local_ba_pose_only: false
+    full_ba_on_loop_closure: false
+    full_ba_iterations: 25
+
+    # Frames
+    map_frame_id: map
+    base_frame_id: base_link
+    camera_frame_id: cam0_link
+    publish_map_to_base_tf: true
+
+    # Camera model (KITTI defaults)
+    camera.fx: 718.856
+    camera.fy: 718.856
+    camera.cx: 607.193
+    camera.cy: 185.216
+    camera.model: pinhole
+    camera.distortion.k1: 0.0
+    camera.distortion.k2: 0.0
+    camera.distortion.k3: 0.0
+    camera.distortion.k4: 0.0
+    # Flat 9-element camera matrix for FrontendOrb plugin (row-major)
+    # [fx  0  cx]
+    # [ 0 fy  cy]
+    # [ 0  0   1]
+    camera_matrix: [718.856, 0.0, 607.193, 0.0, 718.856, 185.216, 0.0, 0.0, 1.0]
+
+    # Landmark mapping — COMMON DEFAULTS (mode files tune these per sensor)
+    landmark_match_ratio_test: 0.75
+    landmark_min_observations: 2
+    landmark_prune_stride: 30
+    landmark_min_depth: 0.4
+    landmark_max_depth: 40.0
+    landmark_min_triangulation_parallax_px: 4
+    local_landmark_track_depth: 4       # match newest KF against last N past KFs — enables fixed↔free landmark anchoring
+
+    # Frontend parameters read by GraphSlam
+    vision.vo_min_tracked_pts: 80
+    vision.vo_reinit_threshold: 40
+    vision.vo_max_corners: 500
+    vision.vo_min_flow_px: 0.5
+    vision.loop_score_threshold: 0.05 # dynamically normalized against previous frame
+
+
+sensor_data_manager:
+  ros__parameters:
+    topics.image_qos.reliability: reliable
+    topics.image_qos.depth: 10
+    sync.queue_size: 20
+
+vision_node:
+  ros__parameters:
+    vision.vpr_backend: dbow2
+    vision.vocabulary_path: voc/ORBvoc.bin
+    loop.temporal_gap: 12
+    loop.score_threshold: 0.05 # dynamically normalized against previous frame
+    loop.vpr_query_max_results: 500
+    frontend.detector: orb
+    frontend.ratio_test_threshold: 0.75
+    camera.fx: 718.856
+    camera.fy: 718.856
+    camera.cx: 607.193
+    camera.cy: 185.216
+    camera.model: pinhole
+    camera.distortion.k1: 0.0
+    camera.distortion.k2: 0.0
+    camera.distortion.k3: 0.0
+    camera.distortion.k4: 0.0

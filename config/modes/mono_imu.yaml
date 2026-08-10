@@ -1,0 +1,95 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# MONO_IMU Mode — Monocular + IMU (VINS-Mono style initialization)
+# ─────────────────────────────────────────────────────────────────────────────
+# Loaded AFTER common_params.yaml, BEFORE slam_params.yaml.
+#
+# Key design decisions for mono_imu:
+#   - GTSAM optimizer (IMU preintegration factors need GTSAM)
+#   - VINS enabled (mode=mono_imu triggers VinsInitializer in graph_slam.cpp)
+#   - Local BA thresholds MODERATE — IMU constrains rotation/translation,
+#     so we can be slightly stricter than mono but not as strict as stereo.
+#   - VO gates MODERATE — IMU is a backup, but we still want quality vision.
+# ─────────────────────────────────────────────────────────────────────────────
+
+graph_slam:
+  ros__parameters:
+    mode: mono_imu
+    system_plugin: "slam::plugins::SystemCoordinator"
+    frontend_plugin: "slam::plugins::FrontendOrb"
+    loop_closure_plugin: "slam::plugins::LoopClosureDBoW2"
+    use_motion_priors: true
+    motion_prior_source: imu_preintegration
+    optimizer: gtsam
+
+    # ── IMU noise parameters (KITTI oxts — factory-calibrated RTK unit) ────
+    imu.accel_noise: 0.02        # [m/s²/√Hz]
+    imu.gyro_noise: 0.0017       # [rad/s/√Hz]
+    imu.accel_bias_walk: 0.0002  # [m/s³/√Hz]
+    imu.gyro_bias_walk: 0.00002  # [rad/s²/√Hz]
+
+    # ── Local BA ─────────────────────────────────────────────────────────────
+    local_ba_min_anchored_landmarks: 10
+    local_ba_min_reprojection_edges: 20
+    local_ba_min_obs_per_landmark_window: 2
+    local_ba_init_min_keyframes: 6
+    local_ba_min_window_kfs: 4
+    local_ba_init_min_baseline_m: 0.05
+    local_ba_init_min_mean_flow_px: 0.5
+    # Monocular VO gives unit-vector t → graph is ~7x larger than real scale.
+    # Loop closure corrections of 50-200m are legitimate. Raise step cap.
+    local_ba_max_tail_step_m: 300.0
+
+    # Planar Height Constraint
+    # Disabled for mono_imu. The height prior at Z=0.0 (σ=0.01) was
+    # fighting the IMU gravity alignment: every node gets a strong pull toward Z=0
+    # in the tightly-coupled BA, overriding the gravity-aligned Z axis from VINS.
+    # In mono_imu mode, the ImuFactor + global gravity alignment handles Z correctly.
+    local_ba_enable_height_prior: false
+    local_ba_height_prior_value: 0.0
+    local_ba_height_prior_stddev: 0.01
+
+    # ── Keyframe Spacing (tuned for KITTI 15 m/s & IMU dominance) ────────────
+    keyframe_distance_threshold: 1.5
+    vision.keyframe_rotation_threshold_deg: 15.0
+    vision.keyframe_time_threshold_sec: 0.5
+
+    # ── VO quality gates ─────────────────────────────────────────────────────
+    vision.min_vo_confidence: 0.20
+    vision.min_vo_inliers: 20
+    vision.min_vo_inlier_ratio: 0.40
+    vision.min_feature_vo_confidence: 0.30
+    vision.min_feature_vo_inliers: 25
+    vision.min_feature_vo_inlier_ratio: 0.30
+    vision.max_consecutive_vo_rejects: 15
+
+    # ── Landmark triangulation ────────────────────────────────────────────────
+    landmark_min_triangulation_parallax_px: 5
+    landmark_min_depth: 0.4
+
+    # ── VINS alignment window ─────────────────────────────────────────────────
+    vins.min_keyframes_for_init: 15
+    vins.stationary_velocity_threshold: 0.10   # [vo-units/s] Below this, vehicle is considered stationary
+    vins.use_scale_prior_fallback: true        # Enable constant-velocity fallback when not enough excitation
+    vins.default_scale_prior: 1.0              # Scale prior used in fallback regime (metric/visual_unit)
+    # KITTI-tuned scale acceptance bounds.
+    # For an indoor drone, use: scale_prior_min=0.1, scale_prior_max=5.0
+    vins.scale_prior_min: 0.3   # Minimum accepted scale (KITTI: 0.3, drone: 0.1)
+    vins.scale_prior_max: 30.0  # Maximum accepted scale (KITTI: 30.0, drone: 5.0)
+
+    # ── Loop Closure ──────────────────────────────────────────────────────────
+    # Disabled for baseline testing per user request.
+    loop.min_inliers: 1000
+    loop.min_inlier_ratio: 0.99
+    loop.max_rotation_error_deg: 10.0
+    loop.cooldown_keyframes: 10
+    loop.max_correction_m: 10.0
+
+    # ── Optimizer jump guard ──────────────────────────────────────────────────
+    optimizer.max_tail_jump_m: 10.0
+
+sensor_data_manager:
+  ros__parameters:
+    mode: mono_imu
+    topics.image: /kitti/camera/gray/left/image_raw
+    topics.camera_info: /kitti/camera/gray/left/camera_info
+    topics.imu: /kitti/oxts/imu

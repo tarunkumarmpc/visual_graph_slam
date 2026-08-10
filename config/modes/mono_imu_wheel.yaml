@@ -1,0 +1,14 @@
+graph_slam:
+  ros__parameters:
+    mode: mono_imu_wheel
+    use_motion_priors: true
+    motion_prior_source: wheel_odometry
+    optimizer: gtsam
+
+sensor_data_manager:
+  ros__parameters:
+    mode: mono_imu_wheel
+    topics.image: /kitti/camera_color_left/image_raw
+    topics.camera_info: "/kitti/camera_color_left/camera_info"
+    topics.odom: /odom
+    topics.imu: /kitti/oxts/imu

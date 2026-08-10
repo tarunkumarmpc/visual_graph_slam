@@ -13,6 +13,8 @@ __pycache__/
 .idea/
 
 # Large binaries and vocabs
-voc/
-*.yml
-*.txt
+
+voc/*.yml
+voc/*.txt
+voc/*.gz
+

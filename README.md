@@ -49,9 +49,9 @@ graph TD
 
 ### Related Repositories
 This repository contains only the `visual_graph_slam` core package. For a complete system deployment, please refer to the following companion repositories in our ecosystem:
-* [**slam_evaluator**](https://github.com/your-org/slam_evaluator): Automated evaluation suite for generating trajectory plots, calculating APE/RPE metrics, and benchmarking against datasets like KITTI.
-* [**DBoW2 Plugin**](https://github.com/your-org/DBoW2): External place recognition and global loop-closure plugin to eliminate long-term odometry drift.
-* [**g2o Optimizer Plugin**](https://github.com/your-org/g2o): Alternative highly-optimized graph backend plugin.
+* [**slam_evaluator**](https://github.com/tarunkumarmpc/slam_evalutor): Automated evaluation suite for generating trajectory plots, calculating APE/RPE metrics, and benchmarking against datasets like KITTI.
+* [**gtsam_vendor**](https://github.com/tarunkumarmpc/gtsam_vendor): Pre-configured GTSAM vendor package for factor graph optimization.
+* [**g2o_vendor**](https://github.com/tarunkumarmpc/g2o_vendor): Alternative highly-optimized g2o graph backend vendor package.
 
 ---
 
@@ -62,7 +62,8 @@ The system was rigorously evaluated against the **KITTI 2011_09_30 Drive 0033** 
 ### 1. Monocular SLAM (Vision Only)
 In pure monocular mode (`mode:=mono`), the system relies solely on visual features. Scale is mathematically unobservable and is locked to an arbitrary constant of 1.0. 
 
-* **Absolute Pose Error (RMSE)**: 54.6 m (across 1700 m)
+* **Absolute Pose Error (RMSE)**: 54.6 m (across 1.7 km)
+* **Drift (APE / Trajectory Length)**: 3.20 %
 * **Relative Pose Error (RMSE)**: 1.18 m
 * **Tracking Robustness**: Successfully tracked the full 1.7km sequence with **0 lost tracking states**.
 * **Heading Analysis**: The ground truth right-hand turn is **-66.7°**. The unscaled monocular trajectory computes a localized turn of **-93.9°** (consistent with the expected drift for unscaled monocular vision operating without global loop closures).
@@ -76,7 +77,8 @@ In pure monocular mode (`mode:=mono`), the system relies solely on visual featur
 ### 2. Monocular-Inertial SLAM (Mono+IMU)
 In tightly-coupled mode (`mode:=mono_imu`), the system fuses 10 Hz camera data with 10 Hz IMU samples using a GTSAM factor graph.
 
-* **Absolute Pose Error (RMSE)**: 58.3 m
+* **Absolute Pose Error (RMSE)**: 58.3 m (across 1.7 km)
+* **Drift (APE / Trajectory Length)**: 3.42 %
 * **Relative Pose Error (RMSE)**: 0.65 m
 
 #### Scale Unobservability and Trajectory Divergence
@@ -105,7 +107,7 @@ When entering the sharp turn, the GTSAM factor graph attempts to reconcile the l
 cd ~/slam_ws/src
 
 # Clone the repository
-git clone https://github.com/your-org/visual_graph_slam.git
+git clone https://github.com/tarunkumarmpc/visual_graph_slam.git
 
 # Navigate back to workspace root and install ROS dependencies
 cd ~/slam_ws
@@ -150,4 +152,5 @@ ros2 run tf2_ros static_transform_publisher \
 
 1. **Monocular Scale Initialization**: As demonstrated in the results, pure constant-velocity initialization prevents the recovery of true metric scale. Future work will integrate an external GPS or wheel-odometry velocity prior to lock the scale before encountering high-dynamic maneuvers.
 2. **Global Loop Closure**: While the `loop_closure` plugin architecture exists, DBoW2-based place recognition is currently maintained externally. Integrating these constraints into the `visual_graph_slam` backend will eliminate the 50m APE accumulated during long 1.7km straightaways.
+
 

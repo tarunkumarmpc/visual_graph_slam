@@ -4,7 +4,7 @@
   <name>visual_graph_slam</name>
   <version>0.0.1</version>
   <description>Your custom SLAM package</description>
-  <maintainer email="your_email@example.com">Your Name</maintainer>
+  <maintainer email="tarunkumarmpc@gmail.com">Tarun</maintainer>
   <license>TODO: License declaration</license>
 
   <buildtool_depend>ament_cmake</buildtool_depend>
